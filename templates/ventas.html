@@ -95,6 +95,20 @@
     </button>
   </form>
 </div>
+<script>
+  new TomSelect('#clienteSelect', {
+    placeholder: "Buscar cliente...",
+    maxOptions: 500,
+    closeAfterSelect: true,
+    allowEmptyOption: false,
+    searchField: ['text'], // busca por el texto visible (nombre + doc)
+    render: {
+      option: function(data) {
+        return `<div>${data.text}</div>`;
+      }
+    }
+  });
+</script>
 
 <script>
   const clienteSelect = document.getElementById('clienteSelect');
