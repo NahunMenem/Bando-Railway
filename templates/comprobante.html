@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comprobante de Venta - Rodeo Calzados</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    .box {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      color: #333;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 1rem;
+      color: #777;
+    }
+
+    .datos-cliente {
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      color: #444;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      padding: 0.6rem;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background-color: #f5f5f5;
+      text-align: left;
+    }
+
+    tfoot td {
+      font-weight: bold;
+      border-top: 2px solid #999;
+    }
+
+    .acciones {
+      margin-top: 2rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .acciones a, .acciones button {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 5px;
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .whatsapp {
+      background-color: #25D366;
+    }
+
+    .print {
+      background-color: #333;
+    }
+
+    @media (min-width: 600px) {
+      .acciones {
+        flex-direction: row;
+        justify-content: center;
+      }
+
+      .acciones a, .acciones button {
+        width: auto;
+        min-width: 160px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <header>
+      <h1>Rodeo Calzados</h1>
+      <p>Comprobante de Venta</p>
+    </header>
+
+    <div class="datos-cliente">
+      <p><strong>Cliente:</strong> {{ cliente.nombre }}</p>
+      <p><strong>Documento:</strong> {{ cliente.documento }}</p>
+      <p><strong>Teléfono:</strong> {{ cliente.telefono }}</p>
+      <p><strong>Fecha:</strong> {{ venta.fecha.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Cant.</th>
+          <th>Descripción</th>
+          <th>P. Unitario</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in venta.items %}
+        <tr>
+          <td>{{ item.cantidad }}</td>
+          <td>{{ item.descripcion }}</td>
+          <td>${{ '%.2f'|format(item.precio_unitario) }}</td>
+          <td>${{ '%.2f'|format(item.total) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">Total operación</td>
+          <td>${{ '%.2f'|format(venta.total) }}</td>
+        </tr>
+        <tr>
+          <td colspan="3">Pago a cuenta</td>
+          <td>${{ '%.2f'|format(venta.pago_a_cuenta or 0) }}</td>
+        </tr>
+        <tr>
+          <td colspan="3">Saldo resultante</td>
+          <td>${{ '%.2f'|format(venta.saldo_resultante) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="acciones">
+      <a class="whatsapp"
+         href="https://wa.me/54{{ cliente.telefono|replace(' ', '') }}?text={{ url_for('comprobante', venta_id=venta.id, _external=True) | urlencode }}"
+         target="_blank">
+        Enviar por WhatsApp
+      </a>
+      <button class="print" onclick="window.print()">Imprimir</button>
+    </div>
+  </div>
+</body>
+</html>

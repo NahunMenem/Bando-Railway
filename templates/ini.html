@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Clientes{% endblock %}
+{% block content %}
+<div class="p-6">
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold flex items-center gap-2">
+      <i data-lucide="users"></i> Clientes y Garantes
+    </h1>
+    <button onclick="document.getElementById('modal').classList.remove('hidden')" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2">
+      <i data-lucide="plus-circle"></i> Nuevo
+    </button>
+  </div>
+
+  <input type="text" id="buscador" placeholder="Buscar cliente..." class="mb-4 w-full p-2 rounded bg-gray-800 text-white">
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-gray-800 rounded-xl text-sm">
+      <thead>
+        <tr class="bg-gray-700 text-left">
+          <th class="px-4 py-2">Cliente</th>
+          <th class="px-4 py-2">Documento</th>
+          <th class="px-4 py-2">Teléfono</th>
+          <th class="px-4 py-2">Garante</th>
+          <th class="px-4 py-2">Tel. Garante</th>
+          <th class="px-4 py-2">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clientes %}
+        <tr class="border-t border-gray-700 cursor-pointer"
+            ondblclick="verDetalle(this)"
+            data-nombre="{{ c.nombre }}"
+            data-documento="{{ c.documento }}"
+            data-telefono="{{ c.telefono }}"
+            data-domicilio="{{ c.domicilio }}"
+            data-localidad="{{ c.localidad }}"
+            data-ingresos="{{ c.ingresos }}"
+            data-trabajo="{{ c.lugar_trabajo }}"
+            data-monto="{{ c.monto_autorizado }}"
+            data-garanteNombre="{{ c.garante.nombre if c.garante else '' }}"
+            data-garanteDocumento="{{ c.garante.documento if c.garante else '' }}"
+            data-garanteTelefono="{{ c.garante.telefono if c.garante else '' }}"
+            data-garanteDomicilio="{{ c.garante.domicilio if c.garante else '' }}"
+            data-garanteLocalidad="{{ c.garante.localidad if c.garante else '' }}"
+            data-garanteIngresos="{{ c.garante.ingresos if c.garante else '' }}"
+            data-garanteTrabajo="{{ c.garante.lugar_trabajo if c.garante else '' }}">
+          <td class="px-4 py-2">{{ c.nombre }}</td>
+          <td class="px-4 py-2">{{ c.documento }}</td>
+          <td class="px-4 py-2">{{ c.telefono }}</td>
+          <td class="px-4 py-2">{{ c.garante.nombre if c.garante else '' }}</td>
+          <td class="px-4 py-2">{{ c.garante.telefono if c.garante else '' }}</td>
+          <td class="px-4 py-2 flex gap-2">
+            <a href="{{ url_for('editar_cliente', id=c.id) }}" class="text-yellow-400 hover:text-yellow-500" title="Editar">
+              <i data-lucide="pencil"></i>
+            </a>
+            <form method="POST" action="{{ url_for('eliminar_cliente', id=c.id) }}" onsubmit="return confirm('¿Eliminar este cliente?')">
+              <button class="text-red-500 hover:text-red-600" title="Eliminar">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal Nuevo -->
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-800 p-6 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold">Nuevo Registro</h2>
+        <button onclick="document.getElementById('modal').classList.add('hidden')">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h3 class="col-span-2 text-lg font-semibold">Cliente</h3>
+        <input name="nombre_cliente" placeholder="Nombre" class="p-2 rounded bg-gray-700">
+        <input name="domicilio_cliente" placeholder="Domicilio" class="p-2 rounded bg-gray-700">
+        <input name="localidad_cliente" placeholder="Localidad" class="p-2 rounded bg-gray-700">
+        <input name="documento_cliente" placeholder="Documento" class="p-2 rounded bg-gray-700">
+        <input name="telefono_cliente" placeholder="Teléfono" class="p-2 rounded bg-gray-700">
+        <input name="ingresos_cliente" placeholder="Ingresos" type="number" step="0.01" class="p-2 rounded bg-gray-700">
+        <input name="trabajo_cliente" placeholder="Lugar de trabajo" class="p-2 rounded bg-gray-700">
+        <input name="monto_autorizado" placeholder="Monto autorizado" type="number" step="0.01" class="p-2 rounded bg-gray-700">
+
+        <h3 class="col-span-2 text-lg font-semibold mt-4">Garante</h3>
+        <input name="nombre_garante" placeholder="Nombre" class="p-2 rounded bg-gray-700">
+        <input name="domicilio_garante" placeholder="Domicilio" class="p-2 rounded bg-gray-700">
+        <input name="localidad_garante" placeholder="Localidad" class="p-2 rounded bg-gray-700">
+        <input name="documento_garante" placeholder="Documento" class="p-2 rounded bg-gray-700">
+        <input name="telefono_garante" placeholder="Teléfono" class="p-2 rounded bg-gray-700">
+        <input name="ingresos_garante" placeholder="Ingresos" type="number" step="0.01" class="p-2 rounded bg-gray-700">
+        <input name="trabajo_garante" placeholder="Lugar de trabajo" class="p-2 rounded bg-gray-700">
+
+        <button class="col-span-2 bg-green-600 hover:bg-green-700 py-2 rounded flex justify-center items-center gap-2 mt-4">
+          <i data-lucide="save"></i> Guardar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Detalle -->
+  <div id="modalDetalle" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-800 p-6 rounded-xl w-full max-w-xl overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold">Detalle del Cliente</h2>
+        <button onclick="cerrarDetalle()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="space-y-2 text-sm">
+        <h3 class="font-semibold">Cliente</h3>
+        <div><strong>Nombre:</strong> <span id="det-nombre"></span></div>
+        <div><strong>Documento:</strong> <span id="det-documento"></span></div>
+        <div><strong>Teléfono:</strong> <span id="det-telefono"></span></div>
+        <div><strong>Domicilio:</strong> <span id="det-domicilio"></span></div>
+        <div><strong>Localidad:</strong> <span id="det-localidad"></span></div>
+        <div><strong>Ingresos:</strong> <span id="det-ingresos"></span></div>
+        <div><strong>Trabajo:</strong> <span id="det-trabajo"></span></div>
+        <div><strong>Monto autorizado:</strong> <span id="det-monto"></span></div>
+
+        <h3 class="mt-4 font-semibold">Garante</h3>
+        <div><strong>Nombre:</strong> <span id="det-garantenombre"></span></div>
+        <div><strong>Documento:</strong> <span id="det-garantedocumento"></span></div>
+        <div><strong>Teléfono:</strong> <span id="det-garantetelefono"></span></div>
+        <div><strong>Domicilio:</strong> <span id="det-garantedomicilio"></span></div>
+        <div><strong>Localidad:</strong> <span id="det-garantelocalidad"></span></div>
+        <div><strong>Ingresos:</strong> <span id="det-garanteingresos"></span></div>
+        <div><strong>Trabajo:</strong> <span id="det-garatetrabajo"></span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    lucide.createIcons();
+
+    const searchInput = document.getElementById("buscador");
+    searchInput.addEventListener("input", () => {
+      const search = searchInput.value.toLowerCase();
+      document.querySelectorAll("tbody tr").forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(search) ? "" : "none";
+      });
+    });
+  });
+
+  function verDetalle(row) {
+    const fields = [
+      "nombre", "documento", "telefono", "domicilio", "localidad",
+      "ingresos", "trabajo", "monto",
+      "garanteNombre", "garanteDocumento", "garanteTelefono",
+      "garanteDomicilio", "garanteLocalidad", "garanteIngresos", "garanteTrabajo"
+    ];
+    fields.forEach(f => {
+      const el = document.getElementById("det-" + f.toLowerCase());
+      if (el) el.textContent = row.dataset[f.toLowerCase()];
+    });
+
+    document.getElementById("modalDetalle").classList.remove("hidden");
+    lucide.createIcons();
+  }
+
+  function cerrarDetalle() {
+    document.getElementById("modalDetalle").classList.add("hidden");
+  }
+</script>
+{% endblock %}

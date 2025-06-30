@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-6 flex items-center gap-2">
+    <i data-lucide="alert-circle"></i> Clientes Morosos
+  </h1>
+
+  <div class="mb-4 text-lg text-white font-semibold">
+    Deuda total: ${{ '%.2f' | format(total_deuda) }}
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm bg-gray-700 rounded shadow">
+      <thead>
+        <tr class="text-left text-white border-b border-gray-600 bg-gray-800">
+          <th class="px-4 py-2">Nombre</th>
+          <th class="px-4 py-2">Documento</th>
+          <th class="px-4 py-2">Teléfono</th>
+          <th class="px-4 py-2 text-right">Monto Adeudado</th>
+          <th class="px-4 py-2 text-center">WhatsApp</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clientes %}
+        <tr class="border-t border-gray-600 hover:bg-gray-600/50 text-gray-200">
+          <td class="px-4 py-2">{{ c.nombre }}</td>
+          <td class="px-4 py-2">{{ c.documento }}</td>
+          <td class="px-4 py-2">{{ c.telefono }}</td>
+          <td class="px-4 py-2 text-right text-red-400">${{ '%.2f' | format(c.saldo_deudor) }}</td>
+          <td class="px-4 py-2 text-center">
+            {% if c.telefono %}
+              {% set mensaje = "Hola " ~ c.nombre ~ ", te recordamos que tenés un saldo pendiente de $" ~ '%.2f' | format(c.saldo_deudor) ~ ". Por favor comunicate con nosotros para regularizarlo." %}
+              <a href="https://wa.me/{{ c.telefono | replace('+', '') }}?text={{ mensaje | urlencode }}"
+                 target="_blank"
+                 class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs">
+                WhatsApp
+              </a>
+            {% else %}
+              <span class="text-gray-400 italic text-xs">Sin número</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+</script>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-6 space-y-6">
+  <h1 class="text-2xl font-bold flex items-center gap-2 text-white">
+    <i data-lucide="shopping-cart"></i> Nueva Venta
+  </h1>
+
+  <form id="formVenta" method="POST" action="{{ url_for('guardar_venta') }}" class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-300">Cliente</label>
+        <select name="cliente_id" id="clienteSelect"
+          class="w-full p-2 rounded bg-gray-800 text-white border border-gray-700">
+          {% for cliente in clientes %}
+          <option value="{{ cliente.id }}"
+                  data-nombre="{{ cliente.nombre }}"
+                  data-monto="{{ cliente.monto_autorizado }}"
+                  data-saldo="{{ cliente.saldo_deudor }}">
+            {{ cliente.nombre }} - {{ cliente.documento }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300">Fecha</label>
+        <input type="text" readonly value="{{ fecha_hoy }}"
+          class="w-full p-2 rounded bg-gray-800 text-white border border-gray-700">
+      </div>
+    </div>
+
+    <div class="bg-gray-800 p-4 rounded shadow space-y-2 border border-gray-700">
+      <p class="text-white flex items-center gap-2"><i data-lucide="user"></i> <strong>Cliente:</strong> <span id="info-nombre"></span></p>
+      <p class="text-white flex items-center gap-2"><i data-lucide="wallet"></i> <strong>Monto autorizado:</strong> $<span id="info-monto"></span></p>
+      <p class="text-white flex items-center gap-2"><i data-lucide="credit-card"></i> <strong>Saldo deudor:</strong> $<span id="info-saldo"></span></p>
+    </div>
+
+    <div>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2 mb-2">
+        <i data-lucide="list-plus"></i> Items
+      </h2>
+      <div class="grid grid-cols-6 gap-2 mb-2">
+        <input id="cantidad" placeholder="Cantidad" type="number"
+          class="p-2 rounded bg-gray-800 text-white border border-gray-700">
+        <input id="descripcion" placeholder="Descripción"
+          class="p-2 rounded bg-gray-800 text-white col-span-2 border border-gray-700">
+        <input id="precio" placeholder="Precio unitario" type="number" step="0.01"
+          class="p-2 rounded bg-gray-800 text-white border border-gray-700">
+        <button type="button" onclick="agregarItem()"
+          class="bg-green-600 hover:bg-green-700 rounded flex items-center justify-center px-3" title="Agregar ítem">
+          <i data-lucide="plus"></i>
+        </button>
+      </div>
+
+      <table class="min-w-full text-sm bg-gray-700 rounded border border-gray-600 text-white">
+        <thead>
+          <tr class="text-left bg-gray-800">
+            <th class="px-2 py-1">Cant.</th>
+            <th class="px-2 py-1">Descripción</th>
+            <th class="px-2 py-1">P. Unitario</th>
+            <th class="px-2 py-1">Importe</th>
+            <th class="px-2 py-1">Saldo</th>
+            <th class="px-2 py-1 text-center">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tablaItems"></tbody>
+        <tfoot class="bg-gray-800">
+          <tr>
+            <td colspan="3" class="px-2 py-1 font-bold">TOTAL DE LA OPERACIÓN</td>
+            <td class="px-2 py-1" id="totalOperacionFoot">$0.00</td>
+            <td class="px-2 py-1" id="saldoFinalFoot">$0.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="px-2 py-1 font-bold">PAGO A CUENTA</td>
+            <td colspan="2" class="px-2 py-1" id="pagoCuentaFoot">$0.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="px-2 py-1 font-bold">SALDO RESULTANTE</td>
+            <td colspan="2" class="px-2 py-1" id="saldoResultanteFoot">$0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <input name="pago_a_cuenta" id="pagoCuenta" type="number" step="0.01"
+      class="p-2 w-full rounded bg-gray-800 text-white border border-gray-700" placeholder="Pago a cuenta">
+
+    <input type="hidden" name="items_json" id="itemsJSON">
+
+    <button type="submit"
+      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2">
+      <i data-lucide="check-circle"></i> Confirmar Venta
+    </button>
+  </form>
+</div>
+
+<script>
+  const clienteSelect = document.getElementById('clienteSelect');
+  const nombre = document.getElementById('info-nombre');
+  const monto = document.getElementById('info-monto');
+  const saldo = document.getElementById('info-saldo');
+  let saldoActual = 0;
+
+  clienteSelect.addEventListener('change', () => {
+    const selected = clienteSelect.selectedOptions[0];
+    nombre.textContent = selected.dataset.nombre;
+    monto.textContent = selected.dataset.monto;
+    saldo.textContent = selected.dataset.saldo;
+    saldoActual = parseFloat(selected.dataset.saldo) || 0;
+    calcularTotales();
+  });
+  clienteSelect.dispatchEvent(new Event('change'));
+
+  let items = [];
+
+  function agregarItem() {
+    const cant = parseFloat(document.getElementById('cantidad').value);
+    const desc = document.getElementById('descripcion').value;
+    const precio = parseFloat(document.getElementById('precio').value);
+    if (!cant || !desc || !precio) return;
+
+    const total = cant * precio;
+    items.push({ cantidad: cant, descripcion: desc, precio_unitario: precio, total });
+    renderItems();
+    calcularTotales();
+
+    // Limpiar inputs
+    document.getElementById('cantidad').value = "";
+    document.getElementById('descripcion').value = "";
+    document.getElementById('precio').value = "";
+  }
+
+  function eliminarItem(i) {
+    items.splice(i, 1);
+    renderItems();
+    calcularTotales();
+  }
+
+  function renderItems() {
+    document.getElementById('tablaItems').innerHTML = items.map((item, i) => {
+      const saldoItem = saldoActual + items.slice(0, i + 1).reduce((acc, it) => acc + it.total, 0);
+      return `
+        <tr>
+          <td class="px-2 py-1">${item.cantidad}</td>
+          <td class="px-2 py-1">${item.descripcion}</td>
+          <td class="px-2 py-1">$${item.precio_unitario.toFixed(2)}</td>
+          <td class="px-2 py-1">$${item.total.toFixed(2)}</td>
+          <td class="px-2 py-1">$${saldoItem.toFixed(2)}</td>
+          <td class="px-2 py-1 text-center">
+            <button onclick="eliminarItem(${i})" class="text-red-500 hover:text-red-700" title="Eliminar">
+              <i data-lucide="x-circle"></i>
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+  function calcularTotales() {
+    const total = items.reduce((acc, item) => acc + item.total, 0);
+    const pago = parseFloat(document.getElementById('pagoCuenta').value) || 0;
+    const saldoResultante = saldoActual + total - pago;
+
+    document.getElementById('totalOperacionFoot').textContent = `$${total.toFixed(2)}`;
+    document.getElementById('pagoCuentaFoot').textContent = `$${pago.toFixed(2)}`;
+    document.getElementById('saldoResultanteFoot').textContent = `$${saldoResultante.toFixed(2)}`;
+    document.getElementById('itemsJSON').value = JSON.stringify(items);
+  }
+
+  document.getElementById('pagoCuenta').addEventListener('input', calcularTotales);
+
+  document.getElementById('formVenta').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch(form.action, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.redirect_url) {
+        // Abrir comprobante
+        window.open(data.redirect_url, "_blank");
+
+        // Limpiar todo
+        form.reset();
+        items = [];
+        renderItems();
+        calcularTotales();
+        clienteSelect.dispatchEvent(new Event('change'));
+
+        // Enfocar en el primer input de carga (opcional)
+        document.getElementById('cantidad').focus();
+
+        // Mostrar mensaje de éxito
+        const msg = document.createElement("div");
+        msg.textContent = "✅ Venta registrada correctamente.";
+        msg.className = "bg-green-700 text-white p-2 rounded mt-4";
+        form.parentElement.appendChild(msg);
+        setTimeout(() => msg.remove(), 5000);
+      } else {
+        throw new Error("No se recibió una URL de comprobante.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error al guardar la venta");
+    }
+  });
+</script>
+
+
+{% endblock %}

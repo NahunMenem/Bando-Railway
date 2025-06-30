@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Iniciar Sesión - Rodeo Calzados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+    });
+    tailwind.config = {
+      theme: {
+        fontFamily: {
+          sans: ['Inter', 'sans-serif']
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-950 text-white flex items-center justify-center min-h-screen px-4 font-sans">
+
+  <div class="bg-gray-900 border border-gray-700 p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6">
+    <div class="text-center space-y-1">
+      <h1 class="text-3xl font-bold tracking-wide text-white flex justify-center items-center gap-2">
+        <i data-lucide="lock"></i> Rodeo Calzados
+      </h1>
+      <p class="text-sm text-gray-400">Iniciá sesión para acceder al sistema</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% set color = {
+            'success': 'bg-green-600',
+            'danger': 'bg-red-600',
+            'info': 'bg-blue-600',
+            'warning': 'bg-yellow-600 text-black'
+          }[category] %}
+          <div class="p-3 rounded text-sm {{ color }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="space-y-4">
+      <div>
+        <label for="username" class="block mb-1 text-sm text-gray-300">Usuario</label>
+        <input type="text" id="username" name="username" required
+               class="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label for="password" class="block mb-1 text-sm text-gray-300">Contraseña</label>
+        <input type="password" id="password" name="password" required
+               class="w-full p-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded flex items-center justify-center gap-2 font-semibold transition">
+        <i data-lucide="log-in"></i> Ingresar
+      </button>
+    </form>
+  </div>
+
+</body>
+</html>
