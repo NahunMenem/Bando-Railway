@@ -305,8 +305,13 @@ def pago_exitoso(pago_id):
 def comprobante(venta_id):
     venta = Venta.query.get_or_404(venta_id)
     cliente = venta.cliente
-    return render_template("comprobante.html", venta=venta, cliente=cliente)
 
+    # Obtener deuda total del cliente (no solo esta venta)
+    deuda_total = db.session.query(
+        func.coalesce(func.sum(Venta.total - Venta.pago_a_cuenta), 0)
+    ).filter_by(cliente_id=cliente.id).scalar()
+
+    return render_template("comprobante.html", venta=venta, cliente=cliente, deuda_total=deuda_total)
 
 
 @app.route("/comprobante-pago/<int:pago_id>")
