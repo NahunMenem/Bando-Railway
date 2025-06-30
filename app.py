@@ -278,22 +278,40 @@ def movimientos():
 
 
 
+
+
 @app.route("/pagos", methods=["GET", "POST"])
+@login_required
 def registrar_pago():
     clientes = Cliente.query.all()
 
     if request.method == "POST":
-        cliente_id = request.form["cliente_id"]
-        monto = float(request.form["monto"])
+        cliente_id = request.form.get("cliente_id")
+        monto = request.form.get("monto")
+
+        try:
+            monto = float(monto)
+        except (ValueError, TypeError):
+            monto = 0.0
+
         cliente = Cliente.query.get(cliente_id)
 
-        if cliente:
-            nuevo_pago = PagoCliente(cliente_id=cliente.id, monto=monto)
+        if cliente and monto > 0:
+            # Hora Argentina naive
+            tz_ar = pytz.timezone("America/Argentina/Buenos_Aires")
+            ahora_ar = datetime.now(tz_ar).replace(tzinfo=None)
+
+            nuevo_pago = PagoCliente(
+                cliente_id=cliente.id,
+                monto=monto,
+                fecha=ahora_ar
+            )
             db.session.add(nuevo_pago)
             db.session.commit()
             return redirect(url_for('pago_exitoso', pago_id=nuevo_pago.id))
 
     return render_template("pago_cliente.html", clientes=clientes)
+
 
 @app.route("/pago-exitoso/<int:pago_id>")
 def pago_exitoso(pago_id):
