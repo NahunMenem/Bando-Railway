@@ -56,6 +56,9 @@ class Venta(db.Model):
     
     items = db.relationship("VentaItem", back_populates="venta", cascade="all, delete-orphan")
     cliente = db.relationship("Cliente", backref="ventas")
+    metodo_pago = db.Column(db.String(50))  # efectivo, debito, etc.
+
+
 
 
 class VentaItem(db.Model):
@@ -76,6 +79,8 @@ class PagoCliente(db.Model):
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     monto = db.Column(db.Float, nullable=False)
+    metodo_pago = db.Column(db.String(50))  # efectivo, debito, etc.
+
 
     cliente = db.relationship("Cliente", backref="pagos")
 

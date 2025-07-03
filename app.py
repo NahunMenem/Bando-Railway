@@ -127,6 +127,7 @@ from flask import jsonify
 @login_required
 def guardar_venta():
     cliente_id = request.form.get("cliente_id")
+    metodo_pago = request.form.get("metodo_pago")  # <-- NUEVO
 
     try:
         pago_a_cuenta = float(request.form.get("pago_a_cuenta", "0") or 0)
@@ -150,7 +151,8 @@ def guardar_venta():
         total=total_operacion,
         pago_a_cuenta=pago_a_cuenta,
         saldo_resultante=saldo_resultante,
-        fecha=ahora_ar
+        fecha=ahora_ar,
+        metodo_pago=metodo_pago  # <-- NUEVO
     )
     db.session.add(venta)
     db.session.flush()
@@ -277,35 +279,18 @@ def movimientos():
 
 
 
-
-
-
 @app.route("/pagos", methods=["GET", "POST"])
-@login_required
 def registrar_pago():
     clientes = Cliente.query.all()
 
     if request.method == "POST":
-        cliente_id = request.form.get("cliente_id")
-        monto = request.form.get("monto")
-
-        try:
-            monto = float(monto)
-        except (ValueError, TypeError):
-            monto = 0.0
+        cliente_id = request.form["cliente_id"]
+        monto = float(request.form["monto"])
+        metodo_pago = request.form["metodo_pago"]
 
         cliente = Cliente.query.get(cliente_id)
-
-        if cliente and monto > 0:
-            # Hora Argentina naive
-            tz_ar = pytz.timezone("America/Argentina/Buenos_Aires")
-            ahora_ar = datetime.now(tz_ar).replace(tzinfo=None)
-
-            nuevo_pago = PagoCliente(
-                cliente_id=cliente.id,
-                monto=monto,
-                fecha=ahora_ar
-            )
+        if cliente:
+            nuevo_pago = PagoCliente(cliente_id=cliente.id, monto=monto, metodo_pago=metodo_pago)
             db.session.add(nuevo_pago)
             db.session.commit()
             return redirect(url_for('pago_exitoso', pago_id=nuevo_pago.id))
@@ -319,17 +304,33 @@ def pago_exitoso(pago_id):
 
 
 
-@app.route('/comprobante/<int:venta_id>')
+@app.route("/comprobante/<int:venta_id>")
 def comprobante(venta_id):
     venta = Venta.query.get_or_404(venta_id)
-    cliente = venta.cliente
+    cliente = Cliente.query.get_or_404(venta.cliente_id)
 
-    # Obtener deuda total del cliente (no solo esta venta)
-    deuda_total = db.session.query(
+    ventas_anteriores = db.session.query(
         func.coalesce(func.sum(Venta.total - Venta.pago_a_cuenta), 0)
-    ).filter_by(cliente_id=cliente.id).scalar()
+    ).filter(
+        Venta.cliente_id == cliente.id,
+        Venta.id < venta.id
+    ).scalar()
 
-    return render_template("comprobante.html", venta=venta, cliente=cliente, deuda_total=deuda_total)
+    pagos_anteriores = db.session.query(
+        func.coalesce(func.sum(PagoCliente.monto), 0)
+    ).filter(
+        PagoCliente.cliente_id == cliente.id,
+        PagoCliente.fecha < venta.fecha
+    ).scalar()
+
+    deuda_anterior = round((ventas_anteriores or 0) - (pagos_anteriores or 0), 2)
+    deuda_total = round(deuda_anterior + venta.saldo_resultante, 2)
+
+    return render_template("comprobante.html", venta=venta, cliente=cliente,
+                           deuda_anterior=deuda_anterior, deuda_total=deuda_total)
+
+
+
 
 
 @app.route("/comprobante-pago/<int:pago_id>")
@@ -398,9 +399,85 @@ def logout():
 
 
 
+@app.route("/eliminar_movimiento/<tipo>/<int:id>", methods=["POST"])
+@login_required
+def eliminar_movimiento(tipo, id):
+    if tipo == "venta":
+        movimiento = Venta.query.get_or_404(id)
+    elif tipo == "pago":
+        movimiento = PagoCliente.query.get_or_404(id)
+    else:
+        flash("Tipo de movimiento inválido", "danger")
+        return redirect(request.referrer)
+
+    db.session.delete(movimiento)
+    db.session.commit()
+    flash("Movimiento eliminado correctamente", "success")
+    return redirect(request.referrer)
+
+
+
+from sqlalchemy import extract
+
+@app.route("/caja", methods=["GET", "POST"])
+@login_required
+def caja():
+    desde = request.args.get("desde")
+    hasta = request.args.get("hasta")
+
+    # Filtro de fechas
+    ventas_query = db.session.query(Venta)
+    pagos_query = db.session.query(PagoCliente)
+
+    if desde and hasta:
+        ventas_query = ventas_query.filter(Venta.fecha.between(desde, hasta))
+        pagos_query = pagos_query.filter(PagoCliente.fecha.between(desde, hasta))
+
+    ventas = ventas_query.all()
+    pagos = pagos_query.all()
+
+    total_ventas = sum(venta.total for venta in ventas)
+    total_ingresado = sum((venta.pago_a_cuenta or 0) for venta in ventas) + sum(p.monto for p in pagos)
+
+    # Agrupar ventas por método de pago (solo el monto pagado)
+    ventas_por_metodo = (
+        db.session.query(Venta.metodo_pago, func.sum(Venta.pago_a_cuenta))
+        .filter(Venta.pago_a_cuenta != None)
+    )
+    if desde and hasta:
+        ventas_por_metodo = ventas_por_metodo.filter(Venta.fecha.between(desde, hasta))
+    ventas_por_metodo = ventas_por_metodo.group_by(Venta.metodo_pago).all()
+
+    # Agrupar pagos de clientes por método de pago
+    pagos_por_metodo = (
+        db.session.query(PagoCliente.metodo_pago, func.sum(PagoCliente.monto))
+    )
+    if desde and hasta:
+        pagos_por_metodo = pagos_por_metodo.filter(PagoCliente.fecha.between(desde, hasta))
+    pagos_por_metodo = pagos_por_metodo.group_by(PagoCliente.metodo_pago).all()
+
+    # Unificar ambos resultados
+    totales_por_metodo = {}
+
+    for metodo, total in ventas_por_metodo:
+        if metodo:
+            totales_por_metodo[metodo] = totales_por_metodo.get(metodo, 0) + float(total)
+
+    for metodo, total in pagos_por_metodo:
+        if metodo:
+            totales_por_metodo[metodo] = totales_por_metodo.get(metodo, 0) + float(total)
+
+    return render_template(
+        "caja.html",
+        total_ventas=total_ventas,
+        total_ingresado=total_ingresado,
+        totales_por_metodo=totales_por_metodo,
+        desde=desde,
+        hasta=hasta
+    )
+
+
 # ---------- MAIN ----------
 
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host="0.0.0.0", port=port)
+    app.run(debug=True)

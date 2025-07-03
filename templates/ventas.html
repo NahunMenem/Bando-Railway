@@ -6,6 +6,8 @@
   </h1>
 
   <form id="formVenta" method="POST" action="{{ url_for('guardar_venta') }}" class="space-y-6">
+
+    <!-- Cliente y Fecha -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
         <label class="block text-sm font-medium text-gray-300">Cliente</label>
@@ -28,12 +30,14 @@
       </div>
     </div>
 
+    <!-- Datos del Cliente -->
     <div class="bg-gray-800 p-4 rounded shadow space-y-2 border border-gray-700">
       <p class="text-white flex items-center gap-2"><i data-lucide="user"></i> <strong>Cliente:</strong> <span id="info-nombre"></span></p>
       <p class="text-white flex items-center gap-2"><i data-lucide="wallet"></i> <strong>Monto autorizado:</strong> $<span id="info-monto"></span></p>
       <p class="text-white flex items-center gap-2"><i data-lucide="credit-card"></i> <strong>Saldo deudor:</strong> $<span id="info-saldo"></span></p>
     </div>
 
+    <!-- Items -->
     <div>
       <h2 class="text-lg font-bold text-white flex items-center gap-2 mb-2">
         <i data-lucide="list-plus"></i> Items
@@ -84,32 +88,44 @@
       </table>
     </div>
 
+    <!-- Pago a cuenta -->
     <input name="pago_a_cuenta" id="pagoCuenta" type="number" step="0.01"
       class="p-2 w-full rounded bg-gray-800 text-white border border-gray-700" placeholder="Pago a cuenta">
 
+    <!-- Método de Pago -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Método de Pago</label>
+      <div class="flex flex-wrap gap-4">
+        <label class="flex items-center gap-2 bg-gray-700 px-3 py-2 rounded hover:bg-gray-600 cursor-pointer">
+          <input type="radio" name="metodo_pago" value="efectivo" required class="accent-green-600">
+          <i data-lucide="dollar-sign" class="w-4 h-4"></i> Efectivo
+        </label>
+        <label class="flex items-center gap-2 bg-gray-700 px-3 py-2 rounded hover:bg-gray-600 cursor-pointer">
+          <input type="radio" name="metodo_pago" value="debito" required class="accent-green-600">
+          <i data-lucide="credit-card" class="w-4 h-4"></i> Débito
+        </label>
+        <label class="flex items-center gap-2 bg-gray-700 px-3 py-2 rounded hover:bg-gray-600 cursor-pointer">
+          <input type="radio" name="metodo_pago" value="credito" required class="accent-green-600">
+          <i data-lucide="credit-card" class="w-4 h-4"></i> Crédito
+        </label>
+        <label class="flex items-center gap-2 bg-gray-700 px-3 py-2 rounded hover:bg-gray-600 cursor-pointer">
+          <input type="radio" name="metodo_pago" value="transferencia" required class="accent-green-600">
+          <i data-lucide="banknote" class="w-4 h-4"></i> Transferencia
+        </label>
+      </div>
+    </div>
+
+    <!-- JSON oculto -->
     <input type="hidden" name="items_json" id="itemsJSON">
 
+    <!-- Confirmar -->
     <button type="submit"
       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2">
       <i data-lucide="check-circle"></i> Confirmar Venta
     </button>
+
   </form>
 </div>
-<script>
-  new TomSelect('#clienteSelect', {
-    placeholder: "Buscar cliente...",
-    maxOptions: 500,
-    closeAfterSelect: true,
-    allowEmptyOption: false,
-    searchField: ['text'], // busca por el texto visible (nombre + doc)
-    render: {
-      option: function(data) {
-        return `<div>${data.text}</div>`;
-      }
-    }
-  });
-</script>
-
 <script>
   const clienteSelect = document.getElementById('clienteSelect');
   const nombre = document.getElementById('info-nombre');

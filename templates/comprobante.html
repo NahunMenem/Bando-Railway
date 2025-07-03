@@ -151,14 +151,17 @@
           <td>${{ '%.2f'|format(venta.pago_a_cuenta or 0) }}</td>
         </tr>
         <tr>
-          <td colspan="3">Saldo de esta venta</td>
+          <td colspan="3">Saldo resultante</td>
           <td>${{ '%.2f'|format(venta.saldo_resultante) }}</td>
         </tr>
         <tr>
-          <td colspan="3">Deuda total</td>
-          <td>${{ '%.2f'|format(deuda_total) }}</td>
+          <td colspan="3">Deuda anterior</td>
+          <td>${{ '%.2f'|format(deuda_anterior) }}</td>
         </tr>
-
+        <tr>
+          <td colspan="3">💥 DEUDA TOTAL</td>
+          <td><strong>${{ '%.2f'|format(deuda_total) }}</strong></td>
+        </tr>
       </tfoot>
     </table>
 

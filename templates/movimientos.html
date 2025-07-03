@@ -32,6 +32,7 @@
           <th class="px-4 py-2 text-left">Saldo</th>
           <th class="px-4 py-2 text-left">Detalles</th>
           <th class="px-4 py-2 text-left">Comprobante</th>
+          <th class="px-4 py-2 text-left">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -50,27 +51,38 @@
           </td>
           <td class="px-4 py-2">
             {% if m.tipo == 'venta' %}
-              <button type="button" onclick="toggleDetalle('{{ m.id }}')" class="text-white hover:underline text-sm">Ver</button>
+              <button type="button" onclick="toggleDetalle('{{ m.id }}')" class="text-white hover:underline text-sm">
+                <i data-lucide="eye"></i>
+              </button>
             {% endif %}
           </td>
           <td class="px-4 py-2">
             {% if m.tipo == 'venta' %}
               <a href="{{ url_for('comprobante', venta_id=m.id) }}" target="_blank"
-                 class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded shadow">
-                 Comprobante
+                 class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded shadow inline-flex items-center gap-1">
+                 <i data-lucide="file-text"></i> Ver
               </a>
             {% elif m.tipo == 'pago' %}
               {% set pago_id = m.id.split('-')[1]|int %}
               <a href="{{ url_for('comprobante_pago', pago_id=pago_id) }}" target="_blank"
-                 class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded shadow">
-                 Comprobante
+                 class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded shadow inline-flex items-center gap-1">
+                 <i data-lucide="file-text"></i> Ver
               </a>
             {% endif %}
+          </td>
+          <td class="px-4 py-2">
+            <form method="POST"
+              action="{{ url_for('eliminar_movimiento', tipo=m.tipo, id=m.id if m.tipo == 'venta' else m.id.split('-')[1]|int) }}"
+              onsubmit="return confirm('¿Estás seguro que deseas eliminar este movimiento?');">
+              <button class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded shadow inline-flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Anular
+              </button>
+            </form>
           </td>
         </tr>
         {% if m.tipo == 'venta' %}
         <tr id="detalle-{{ m.id }}" class="hidden bg-gray-900">
-          <td colspan="6" class="px-6 py-3 text-gray-200">
+          <td colspan="7" class="px-6 py-3 text-gray-200">
             {% if m.descripcion %}
               <p class="mb-2"><strong>Descripción:</strong> {{ m.descripcion }}</p>
             {% endif %}
