@@ -5,6 +5,8 @@ from datetime import date, datetime
 from sqlalchemy import func, and_
 import json
 from flask_login import login_user, logout_user, login_required, current_user
+import os
+from dotenv import load_dotenv
 
 
 app = Flask(__name__)
@@ -480,4 +482,5 @@ def caja():
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
-    app.run()
+    load_dotenv()  # Solo para local
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
