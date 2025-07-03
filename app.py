@@ -6,7 +6,6 @@ from sqlalchemy import func, and_
 import json
 from flask_login import login_user, logout_user, login_required, current_user
 
-load_dotenv()  # Solo para local
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'  # Podés reemplazarla con otra más segura
