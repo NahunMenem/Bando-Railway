@@ -6,8 +6,10 @@ from sqlalchemy import func, and_
 import json
 from flask_login import login_user, logout_user, login_required, current_user
 
+load_dotenv()  # Solo para local
+
 app = Flask(__name__)
-app.secret_key = "una-clave-secreta"
+app.secret_key = 'tu_clave_secreta_aqui'  # Podés reemplazarla con otra más segura
 
 app.config.from_object(Config)
 
@@ -479,5 +481,4 @@ def caja():
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
+    app.run()
