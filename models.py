@@ -88,13 +88,15 @@ class Usuario(db.Model, UserMixin):
     __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.String(128), nullable=False)  # volvemos al campo anterior
     role = db.Column(db.String(50))
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password = password  # temporalmente texto plano
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return self.password == password
+
+
 
 
