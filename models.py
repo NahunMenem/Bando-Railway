@@ -20,12 +20,32 @@ class Cliente(db.Model):
     lugar_trabajo = db.Column(db.String(120))
     monto_autorizado = db.Column(db.Float)
 
-    garante = db.relationship('Garante', backref='cliente', uselist=False)
+    garante = db.relationship(
+        'Garante',
+        backref='cliente',
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+    ventas = db.relationship(
+        'Venta',
+        backref='cliente',
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+    pagos = db.relationship(
+        'PagoCliente',
+        backref='cliente',
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+
     @property
     def saldo_deudor(self):
         total_deuda = sum((v.total or 0) - (v.pago_a_cuenta or 0) for v in self.ventas)
         total_pagos = sum(p.monto for p in self.pagos)
         return round(total_deuda - total_pagos, 2)
+
 
 class Garante(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,7 +57,8 @@ class Garante(db.Model):
     ingresos = db.Column(db.Float)
     lugar_trabajo = db.Column(db.String(120))
 
-    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'))
+    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete="CASCADE"))
+
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -99,6 +120,7 @@ class Usuario(db.Model, UserMixin):
 
     def check_password(self, password):
         return self.password == password  # compara en texto plano
+
 
 
 
