@@ -19,15 +19,18 @@ db.init_app(app)
 
 # Crear tablas automáticamente (solo en desarrollo)
 with app.app_context():
-    db.create_all()
-
-# ---------- RUTAS CLIENTES ----------
+    db.create_all()@app.route("/editar/<int:id>", methods=["GET", "POST"])--
 
 def safe_float(value):
+    """Convierte cadenas vacías o con coma a float o None."""
     try:
-        return float(value.strip()) if value.strip() else None
-    except:
+        if not value or value.strip() == "":
+            return None
+        value = value.replace(",", ".")  # Aceptar '10,5' como 10.5
+        return float(value)
+    except ValueError:
         return None
+
 
 @app.route("/", methods=["GET", "POST"])
 @login_required
@@ -73,22 +76,24 @@ def editar_cliente(id):
     garante = cliente.garante
 
     if request.method == "POST":
+        # Cliente
         cliente.nombre = request.form["nombre_cliente"]
         cliente.domicilio = request.form["domicilio_cliente"]
         cliente.localidad = request.form["localidad_cliente"]
         cliente.documento = request.form["documento_cliente"]
         cliente.telefono = request.form["telefono_cliente"]
-        cliente.ingresos = request.form["ingresos_cliente"]
+        cliente.ingresos = safe_float(request.form.get("ingresos_cliente", ""))
         cliente.lugar_trabajo = request.form["trabajo_cliente"]
-        cliente.monto_autorizado = request.form["monto_autorizado"]
+        cliente.monto_autorizado = safe_float(request.form.get("monto_autorizado", ""))
 
+        # Garante
         if garante:
             garante.nombre = request.form["nombre_garante"]
             garante.domicilio = request.form["domicilio_garante"]
             garante.localidad = request.form["localidad_garante"]
             garante.documento = request.form["documento_garante"]
             garante.telefono = request.form["telefono_garante"]
-            garante.ingresos = request.form["ingresos_garante"]
+            garante.ingresos = safe_float(request.form.get("ingresos_garante", ""))
             garante.lugar_trabajo = request.form["trabajo_garante"]
 
         db.session.commit()
@@ -97,12 +102,31 @@ def editar_cliente(id):
     return render_template("editar.html", cliente=cliente, garante=garante)
 
 
+
+
 @app.route("/eliminar/<int:id>", methods=["POST"])
 @login_required
 def eliminar_cliente(id):
     cliente = Cliente.query.get_or_404(id)
+
+    # Primero eliminamos registros relacionados
+    if cliente.garante:
+        db.session.delete(cliente.garante)
+
+    # Eliminar ventas y sus ítems asociados
+    for venta in cliente.ventas:
+        for item in venta.items:
+            db.session.delete(item)
+        db.session.delete(venta)
+
+    # Eliminar pagos asociados
+    for pago in cliente.pagos:
+        db.session.delete(pago)
+
+    # Finalmente eliminar el cliente
     db.session.delete(cliente)
     db.session.commit()
+
     return redirect(url_for("index"))
 
 
@@ -484,3 +508,4 @@ def caja():
 if __name__ == "__main__":
     load_dotenv()  # Solo para local
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
