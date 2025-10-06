@@ -1,15 +1,14 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from datetime import datetime, timezone
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
-db = SQLAlchemy()
 
 class Cliente(db.Model):
+    __tablename__ = "cliente"
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(120))
     domicilio = db.Column(db.String(120))
@@ -20,25 +19,12 @@ class Cliente(db.Model):
     lugar_trabajo = db.Column(db.String(120))
     monto_autorizado = db.Column(db.Float)
 
-    garante = db.relationship(
-        'Garante',
-        backref='cliente',
-        uselist=False,
-        cascade="all, delete-orphan",
-        passive_deletes=True
-    )
-    ventas = db.relationship(
-        'Venta',
-        backref='cliente',
-        cascade="all, delete-orphan",
-        passive_deletes=True
-    )
-    pagos = db.relationship(
-        'PagoCliente',
-        backref='cliente',
-        cascade="all, delete-orphan",
-        passive_deletes=True
-    )
+    # Relación 1 a 1 con Garante
+    garante = db.relationship("Garante", backref="cliente", uselist=False, cascade="all, delete-orphan")
+
+    # Relación 1 a muchos con Ventas y Pagos
+    ventas = db.relationship("Venta", cascade="all, delete-orphan")
+    pagos = db.relationship("PagoCliente", cascade="all, delete-orphan")
 
     @property
     def saldo_deudor(self):
@@ -48,6 +34,7 @@ class Cliente(db.Model):
 
 
 class Garante(db.Model):
+    __tablename__ = "garante"
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(120))
     domicilio = db.Column(db.String(120))
@@ -57,35 +44,29 @@ class Garante(db.Model):
     ingresos = db.Column(db.Float)
     lugar_trabajo = db.Column(db.String(120))
 
-    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete="CASCADE"))
+    cliente_id = db.Column(db.Integer, db.ForeignKey("cliente.id"))
 
 
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-
-from datetime import datetime
 class Venta(db.Model):
-    __tablename__ = 'ventas2'
+    __tablename__ = "ventas2"
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("cliente.id"))
-    fecha = db.Column(db.DateTime, default=lambda: datetime.now(timezone("America/Argentina/Buenos_Aires")).replace(tzinfo=None))
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
     total = db.Column(db.Float)
     pago_a_cuenta = db.Column(db.Float)
     saldo_resultante = db.Column(db.Float)
     descripcion = db.Column(db.Text)
-    
-    items = db.relationship("VentaItem", back_populates="venta", cascade="all, delete-orphan")
-    cliente = db.relationship("Cliente", backref="ventas")
     metodo_pago = db.Column(db.String(50))  # efectivo, debito, etc.
 
-
+    # Relación con items
+    items = db.relationship("VentaItem", back_populates="venta", cascade="all, delete-orphan")
 
 
 class VentaItem(db.Model):
-    __tablename__ = 'venta_items'
+    __tablename__ = "venta_items"
     id = db.Column(db.Integer, primary_key=True)
-    venta_id = db.Column(db.Integer, db.ForeignKey('ventas2.id'), nullable=False)
+    venta_id = db.Column(db.Integer, db.ForeignKey("ventas2.id"), nullable=False)
     cantidad = db.Column(db.Integer)
     descripcion = db.Column(db.Text)
     precio_unitario = db.Column(db.Float)
@@ -95,32 +76,25 @@ class VentaItem(db.Model):
 
 
 class PagoCliente(db.Model):
-    __tablename__ = 'pagos_clientes'
+    __tablename__ = "pagos_clientes"
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("cliente.id"), nullable=False)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     monto = db.Column(db.Float, nullable=False)
-    metodo_pago = db.Column(db.String(50))  # efectivo, debito, etc.
+    metodo_pago = db.Column(db.String(50))
 
-
-    cliente = db.relationship("Cliente", backref="pagos")
-
-
-# models.py
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin
 
 class Usuario(db.Model, UserMixin):
-    __tablename__ = 'usuarios'  # Asegurate que coincida con la tabla
-
+    __tablename__ = 'usuarios'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)  # usamos 'password' y no 'password_hash'
-    role = db.Column(db.String(50))  # opcional si lo usás
+    password_hash = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(50))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        return self.password == password  # compara en texto plano
-
-
+        return check_password_hash(self.password_hash, password)
 
 
