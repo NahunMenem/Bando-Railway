@@ -298,14 +298,12 @@ def registrar_pago():
 
 
 @app.route("/pago-exitoso/<int:pago_id>")
-@login_required
 def pago_exitoso(pago_id):
     return render_template("pago_exitoso.html", pago_id=pago_id)
 
 
 # ---------- COMPROBANTES ----------
 @app.route("/comprobante/<int:venta_id>")
-@login_required
 def comprobante(venta_id):
     venta = Venta.query.get_or_404(venta_id)
     cliente = Cliente.query.get_or_404(venta.cliente_id)
@@ -329,7 +327,6 @@ def comprobante(venta_id):
 
 
 @app.route("/comprobante-pago/<int:pago_id>")
-@login_required
 def comprobante_pago(pago_id):
     pago = PagoCliente.query.get_or_404(pago_id)
     cliente = Cliente.query.get_or_404(pago.cliente_id)
@@ -346,7 +343,6 @@ def comprobante_pago(pago_id):
 
 # ---------- MOROSOS ----------
 @app.route("/morosos")
-@login_required
 def morosos():
     clientes = Cliente.query.all()
     clientes_morosos = [c for c in clientes if c.saldo_deudor > 0]
@@ -466,3 +462,4 @@ def logout():
 if __name__ == "__main__":
     load_dotenv()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
