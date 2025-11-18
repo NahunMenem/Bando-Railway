@@ -5,3 +5,5 @@ flask_login
 psycopg2-binary
 python-dotenv
 pytz
+waitress
+
