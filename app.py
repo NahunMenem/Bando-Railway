@@ -13,7 +13,14 @@ from dotenv import load_dotenv
 from sqlalchemy.sql import text
 
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(
+    __name__,
+    static_folder=os.path.join(BASE_DIR, "static"),
+    template_folder=os.path.join(BASE_DIR, "templates")
+)
+
 app.secret_key = 'tu_clave_secreta_aqui'  # Reemplazala por algo más seguro
 
 app.config.from_object(Config)
@@ -462,4 +469,5 @@ def logout():
 if __name__ == "__main__":
     load_dotenv()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
