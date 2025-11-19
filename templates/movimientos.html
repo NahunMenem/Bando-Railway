@@ -1,140 +1,105 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="p-6">
-  <h1 class="text-2xl font-bold mb-4 flex items-center gap-2">
-    <i data-lucide="list"></i> Movimientos del Cliente
-  </h1>
 
-  <form method="GET" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    <div>
-      <select name="cliente_id" id="cliente-select" class="p-2 w-full rounded bg-gray-800 text-white">
-        <option value="">Seleccionar cliente...</option>
-        {% for cliente in clientes %}
-          <option value="{{ cliente.id }}" {% if cliente_id_seleccionado == cliente.id|string %}selected{% endif %}>
-            {{ cliente.nombre }} - {{ cliente.documento }}
-          </option>
-        {% endfor %}
-      </select>
+<div class="max-w-7xl mx-auto space-y-8">
+
+    <!-- 🔹 Título -->
+    <h1 class="text-2xl font-bold flex items-center gap-2">
+        <i data-lucide="list"></i>
+        Movimientos del Cliente
+    </h1>
+
+    <!-- 🔹 BUSCAR CLIENTE -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-4">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- CLIENTE SELECCIONADO -->
+            <div>
+                <label class="text-gray-300 text-sm">Cliente seleccionado</label>
+                <input type="text" value="{{ cliente_nombre }}" 
+                       class="w-full bg-gray-700 text-white p-3 rounded border border-gray-600" disabled>
+            </div>
+
+            <!-- BUSCAR OTRO CLIENTE -->
+            <div>
+                <label class="text-gray-300 text-sm">Buscar otro cliente</label>
+                <form method="get" class="flex gap-2">
+                    <input 
+                        type="text" 
+                        name="q" 
+                        placeholder="Nombre o teléfono..."
+                        class="flex-1 bg-gray-700 text-white p-3 rounded border border-gray-600"
+                    >
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded flex items-center gap-2">
+                        <i data-lucide="search"></i>
+                        Buscar
+                    </button>
+                </form>
+            </div>
+        </div>
+
     </div>
-    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center justify-center gap-2">
-      <i data-lucide="search"></i> Buscar
-    </button>
-  </form>
 
-  {% if movimientos %}
-  <div class="overflow-x-auto rounded shadow-lg">
-    <table class="min-w-full text-sm bg-gray-800 text-white rounded-lg overflow-hidden">
-      <thead class="bg-gray-700 text-xs uppercase tracking-wider text-gray-300 border-b border-gray-600">
-        <tr>
-          <th class="px-4 py-2 text-left">Fecha y Hora</th>
-          <th class="px-4 py-2 text-left">Total Compra</th>
-          <th class="px-4 py-2 text-left">Pago</th>
-          <th class="px-4 py-2 text-left">Saldo</th>
-          <th class="px-4 py-2 text-left">Detalles</th>
-          <th class="px-4 py-2 text-left">Comprobante</th>
-          <th class="px-4 py-2 text-left">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for m in movimientos %}
-        <tr class="border-t border-gray-700 hover:bg-gray-700/70">
-          <td class="px-4 py-2">{{ m.fecha.strftime("%d/%m/%Y %H:%M") }}</td>
+    <!-- 🔹 TABLA DE MOVIMIENTOS -->
+    <div class="bg-gray-800 p-4 rounded-lg shadow overflow-x-auto">
 
-          <td class="px-4 py-2 text-green-400">
-            {% if m.tipo == 'venta' %}${{ '%.2f' | format(m.total) }}{% endif %}
-          </td>
-          <td class="px-4 py-2 text-blue-400">
-            {% if m.tipo == 'pago' %}${{ '%.2f' | format(m.pago_a_cuenta) }}{% elif m.pago_a_cuenta > 0 %}${{ '%.2f' | format(m.pago_a_cuenta) }}{% endif %}
-          </td>
-          <td class="px-4 py-2 text-red-400">
-            {% if m.saldo_resultante is not none %}${{ '%.2f' | format(m.saldo_resultante) }}{% endif %}
-          </td>
-          <td class="px-4 py-2">
-            {% if m.tipo == 'venta' %}
-              <button type="button" onclick="toggleDetalle('{{ m.id }}')" class="text-white hover:underline text-sm">
-                <i data-lucide="eye"></i>
-              </button>
-            {% endif %}
-          </td>
-          <td class="px-4 py-2">
-            {% if m.tipo == 'venta' %}
-              <a href="{{ url_for('comprobante', venta_id=m.id) }}" target="_blank"
-                 class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded shadow inline-flex items-center gap-1">
-                 <i data-lucide="file-text"></i> Ver
-              </a>
-            {% elif m.tipo == 'pago' %}
-              {% set pago_id = m.id.split('-')[1]|int %}
-              <a href="{{ url_for('comprobante_pago', pago_id=pago_id) }}" target="_blank"
-                 class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded shadow inline-flex items-center gap-1">
-                 <i data-lucide="file-text"></i> Ver
-              </a>
-            {% endif %}
-          </td>
-          <td class="px-4 py-2">
-            <form method="POST"
-              action="{{ url_for('eliminar_movimiento', tipo=m.tipo, id=m.id if m.tipo == 'venta' else m.id.split('-')[1]|int) }}"
-              onsubmit="return confirm('¿Estás seguro que deseas eliminar este movimiento?');">
-              <button class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded shadow inline-flex items-center gap-1">
-                <i data-lucide="trash-2" class="w-4 h-4"></i> Anular
-              </button>
-            </form>
-          </td>
-        </tr>
-        {% if m.tipo == 'venta' %}
-        <tr id="detalle-{{ m.id }}" class="hidden bg-gray-900">
-          <td colspan="7" class="px-6 py-3 text-gray-200">
-            {% if m.descripcion %}
-              <p class="mb-2"><strong>Descripción:</strong> {{ m.descripcion }}</p>
-            {% endif %}
-            {% if m.items %}
-              <table class="w-full text-xs text-left bg-gray-700 border border-gray-600 rounded mt-2">
-                <thead class="bg-gray-800 text-white">
-                  <tr>
-                    <th class="px-2 py-1">Cant.</th>
-                    <th class="px-2 py-1">Descripción</th>
-                    <th class="px-2 py-1">P. Unitario</th>
-                    <th class="px-2 py-1">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for item in m["items"] %}
-                  <tr>
-                    <td class="px-2 py-1">{{ item.cantidad }}</td>
-                    <td class="px-2 py-1">{{ item.descripcion }}</td>
-                    <td class="px-2 py-1">${{ '%.2f' | format(item.precio_unitario) }}</td>
-                    <td class="px-2 py-1">${{ '%.2f' | format(item.total) }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            {% endif %}
-          </td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% elif cliente_id_seleccionado %}
-    <p class="text-gray-300 mt-4">No hay movimientos para este cliente.</p>
-  {% endif %}
+        <table class="min-w-full text-sm text-left text-gray-300">
+            
+            <!-- ENCABEZADOS -->
+            <thead class="bg-gray-700 text-gray-200">
+                <tr>
+                    <th class="px-4 py-3">Fecha y Hora</th>
+                    <th class="px-4 py-3">Total Compra</th>
+                    <th class="px-4 py-3">Pago</th>
+                    <th class="px-4 py-3">Saldo</th>
+                    <th class="px-4 py-3">Detalles</th>
+                    <th class="px-4 py-3">Comprobante</th>
+                    <th class="px-4 py-3">Acciones</th>
+                </tr>
+            </thead>
+
+            <!-- CUERPO -->
+            <tbody>
+                {% for mov in movimientos %}
+                <tr class="border-b border-gray-700 hover:bg-gray-700/40">
+
+                    <td class="px-4 py-3">{{ mov.fecha }}</td>
+                    <td class="px-4 py-3 text-blue-300">${{ mov.total }}</td>
+                    <td class="px-4 py-3 text-green-300">${{ mov.pago }}</td>
+                    <td class="px-4 py-3 text-red-300">${{ mov.saldo }}</td>
+
+                    <td class="px-4 py-3">
+                        <button class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-white text-xs flex items-center gap-1">
+                            <i data-lucide="eye"></i> Ver
+                        </button>
+                    </td>
+
+                    <td class="px-4 py-3">
+                        <button class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-white text-xs flex items-center gap-1">
+                            <i data-lucide="file"></i> Ver
+                        </button>
+                    </td>
+
+                    <td class="px-4 py-3">
+                        <button class="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-white text-xs flex items-center gap-1">
+                            <i data-lucide="trash-2"></i> Anular
+                        </button>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+
 </div>
 
 <script>
-  function toggleDetalle(id) {
-    const fila = document.getElementById('detalle-' + id);
-    fila.classList.toggle('hidden');
-  }
-
-  new TomSelect('#cliente-select', {
-    create: false,
-    sortField: {
-      field: 'text',
-      direction: 'asc'
-    },
-    placeholder: 'Buscar cliente...'
-  });
-
-  lucide.createIcons();
+    lucide.createIcons()
 </script>
+
 {% endblock %}
+
+
