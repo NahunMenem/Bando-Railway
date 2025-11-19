@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Rodeo Calzados{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <link rel="stylesheet" href="{{ url_for('static', filename='tailwind.css') }}">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -11,61 +13,66 @@
       lucide.createIcons();
     });
   </script>
-  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 </head>
-<body class="bg-gray-900 text-white">
-  <div class="flex flex-col md:flex-row min-h-screen">
 
-    <!-- Sidebar -->
-    <aside class="w-full md:w-64 bg-gray-800 p-4 md:p-6 space-y-6">
-      <h1 class="text-2xl font-bold flex items-center gap-2 mb-4 text-white">
+<body class="bg-gray-900 text-white">
+
+  <!-- 🔵 NAVBAR SUPERIOR -->
+  <header class="w-full bg-gray-800 px-6 py-4 shadow-xl">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+
+      <!-- 🔹 Logo -->
+      <h1 class="text-xl font-bold flex items-center gap-2">
         <i data-lucide="layers"></i> Rodeo Calzados
       </h1>
 
-      <nav class="flex flex-col gap-1 text-sm font-medium">
+      <!-- 🔹 Menú horizontal -->
+      <nav class="flex flex-wrap gap-6 text-sm font-medium">
+
         <a href="{{ url_for('index') }}"
-           class="flex items-center gap-2 p-2 rounded {{ 'bg-gray-700 text-white' if request.endpoint == 'index' else 'hover:bg-gray-700 text-gray-300' }}">
-          <i data-lucide="users"></i> Clientes
+           class="flex items-center gap-1 hover:text-white {{ 'text-white' if request.endpoint == 'index' else 'text-gray-300' }}">
+          <i data-lucide="users" class="w-4"></i> Clientes
         </a>
 
         <a href="{{ url_for('ventas') }}"
-           class="flex items-center gap-2 p-2 rounded {{ 'bg-gray-700 text-white' if request.endpoint == 'ventas' else 'hover:bg-gray-700 text-gray-300' }}">
-          <i data-lucide="shopping-cart"></i> Ventas
+           class="flex items-center gap-1 hover:text-white {{ 'text-white' if request.endpoint == 'ventas' else 'text-gray-300' }}">
+          <i data-lucide="shopping-cart" class="w-4"></i> Ventas
         </a>
 
         <a href="{{ url_for('movimientos') }}"
-           class="flex items-center gap-2 p-2 rounded {{ 'bg-gray-700 text-white' if request.endpoint == 'movimientos' else 'hover:bg-gray-700 text-gray-300' }}">
-          <i data-lucide="list"></i> Movimientos
+           class="flex items-center gap-1 hover:text-white {{ 'text-white' if request.endpoint == 'movimientos' else 'text-gray-300' }}">
+          <i data-lucide="list" class="w-4"></i> Movimientos
         </a>
 
         <a href="{{ url_for('registrar_pago') }}"
-           class="flex items-center gap-2 p-2 rounded {{ 'bg-gray-700 text-white' if request.endpoint == 'registrar_pago' else 'hover:bg-gray-700 text-gray-300' }}">
-          <i data-lucide="dollar-sign"></i> Pagos
+           class="flex items-center gap-1 hover:text-white {{ 'text-white' if request.endpoint == 'registrar_pago' else 'text-gray-300' }}">
+          <i data-lucide="dollar-sign" class="w-4"></i> Pagos
         </a>
 
         <a href="{{ url_for('morosos') }}"
-           class="flex items-center gap-2 p-2 rounded {{ 'bg-gray-700 text-white' if request.endpoint == 'morosos' else 'hover:bg-gray-700 text-gray-300' }}">
-          <i data-lucide="alert-circle"></i> Morosos
+           class="flex items-center gap-1 hover:text-white {{ 'text-white' if request.endpoint == 'morosos' else 'text-gray-300' }}">
+          <i data-lucide="alert-circle" class="w-4"></i> Morosos
         </a>
 
         <a href="{{ url_for('caja') }}"
-           class="flex items-center gap-2 p-2 rounded {{ 'bg-gray-700 text-white' if request.endpoint == 'caja' else 'hover:bg-gray-700 text-gray-300' }}">
-          <i data-lucide="wallet"></i> Caja
+           class="flex items-center gap-1 hover:text-white {{ 'text-white' if request.endpoint == 'caja' else 'text-gray-300' }}">
+          <i data-lucide="wallet" class="w-4"></i> Caja
         </a>
 
         <a href="{{ url_for('logout') }}"
-           class="flex items-center gap-2 p-2 rounded hover:bg-gray-700 text-red-400 hover:text-red-300">
-          <i data-lucide="log-out"></i> Cerrar sesión
+           class="flex items-center gap-1 text-red-400 hover:text-red-300">
+          <i data-lucide="log-out" class="w-4"></i> Cerrar sesión
         </a>
-      </nav>
-    </aside>
 
-    <!-- Contenido principal -->
-    <main class="flex-1 p-4 md:p-6 overflow-y-auto">
-      {% block content %}{% endblock %}
-    </main>
-  </div>
+      </nav>
+
+    </div>
+  </header>
+
+  <!-- 🔵 Contenido de cada página -->
+  <main class="p-6">
+    {% block content %}{% endblock %}
+  </main>
+
 </body>
 </html>
-
