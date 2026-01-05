@@ -140,22 +140,27 @@ def eliminar_cliente(id):
 
 # ---------- RUTAS VENTAS ----------
 # ---------- RUTAS VENTAS ----------
+from sqlalchemy.orm import aliased
+
 @app.route("/ventas")
 @login_required
 def ventas():
+    saldos = dict(
+        db.session.query(
+            Venta.cliente_id,
+            func.coalesce(
+                func.sum(Venta.total - func.coalesce(Venta.pago_a_cuenta, 0)),
+                0
+            )
+        )
+        .group_by(Venta.cliente_id)
+        .all()
+    )
+
     clientes = Cliente.query.all()
 
-    for cliente in clientes:
-        cliente.saldo_calculado = (
-            db.session.query(
-                func.coalesce(
-                    func.sum(Venta.total - func.coalesce(Venta.pago_a_cuenta, 0)),
-                    0
-                )
-            )
-            .filter(Venta.cliente_id == cliente.id)
-            .scalar()
-        )
+    for c in clientes:
+        c.saldo_calculado = saldos.get(c.id, 0)
 
     return render_template(
         "ventas.html",
@@ -232,6 +237,8 @@ def api_cliente(cliente_id):
 
 
 # ---------- MOVIMIENTOS ----------
+from sqlalchemy.orm import joinedload
+
 @app.route("/movimientos")
 @login_required
 def movimientos():
@@ -242,7 +249,14 @@ def movimientos():
     tz_ar = pytz.timezone("America/Argentina/Buenos_Aires")
 
     if cliente_id:
-        ventas = Venta.query.filter_by(cliente_id=cliente_id).all()
+        # 👇 CARGA ITEMS EN LA MISMA QUERY (ELIMINA N+1)
+        ventas = (
+            Venta.query
+            .options(joinedload(Venta.items))
+            .filter_by(cliente_id=cliente_id)
+            .all()
+        )
+
         pagos = PagoCliente.query.filter_by(cliente_id=cliente_id).all()
 
         for v in ventas:
@@ -289,10 +303,12 @@ def movimientos():
 
         movimientos.sort(key=lambda x: x["fecha"], reverse=True)
 
-    return render_template("movimientos.html",
-                           clientes=clientes,
-                           movimientos=movimientos,
-                           cliente_id_seleccionado=cliente_id)
+    return render_template(
+        "movimientos.html",
+        clientes=clientes,
+        movimientos=movimientos,
+        cliente_id_seleccionado=cliente_id
+    )
 
 
 # ---------- PAGOS ----------
@@ -388,55 +404,81 @@ def eliminar_movimiento(tipo, id):
 
 
 # ---------- CAJA ----------
+# ---------- CAJA ----------
 @app.route("/caja", methods=["GET", "POST"])
 @login_required
 def caja():
     desde = request.args.get("desde")
     hasta = request.args.get("hasta")
 
-    ventas_query = db.session.query(Venta)
-    pagos_query = db.session.query(PagoCliente)
-
-    if desde and hasta:
-        ventas_query = ventas_query.filter(Venta.fecha.between(desde, hasta))
-        pagos_query = pagos_query.filter(PagoCliente.fecha.between(desde, hasta))
-
-    ventas = ventas_query.all()
-    pagos = pagos_query.all()
-
-    total_ventas = sum(venta.total for venta in ventas)
-    total_ingresado = sum((venta.pago_a_cuenta or 0) for venta in ventas) + sum(p.monto for p in pagos)
-
-    ventas_por_metodo = (
-        db.session.query(Venta.metodo_pago, func.sum(Venta.pago_a_cuenta))
-        .filter(Venta.pago_a_cuenta != None)
+    # =========================
+    # TOTALES GENERALES
+    # =========================
+    ventas_total_q = db.session.query(
+        func.coalesce(func.sum(Venta.total), 0)
     )
-    if desde and hasta:
-        ventas_por_metodo = ventas_por_metodo.filter(Venta.fecha.between(desde, hasta))
-    ventas_por_metodo = ventas_por_metodo.group_by(Venta.metodo_pago).all()
-
-    pagos_por_metodo = (
-        db.session.query(PagoCliente.metodo_pago, func.sum(PagoCliente.monto))
+    pagos_total_q = db.session.query(
+        func.coalesce(func.sum(PagoCliente.monto), 0)
     )
-    if desde and hasta:
-        pagos_por_metodo = pagos_por_metodo.filter(PagoCliente.fecha.between(desde, hasta))
-    pagos_por_metodo = pagos_por_metodo.group_by(PagoCliente.metodo_pago).all()
+    ventas_ingresado_q = db.session.query(
+        func.coalesce(func.sum(Venta.pago_a_cuenta), 0)
+    )
 
+    if desde and hasta:
+        ventas_total_q = ventas_total_q.filter(Venta.fecha.between(desde, hasta))
+        pagos_total_q = pagos_total_q.filter(PagoCliente.fecha.between(desde, hasta))
+        ventas_ingresado_q = ventas_ingresado_q.filter(Venta.fecha.between(desde, hasta))
+
+    total_ventas = float(ventas_total_q.scalar() or 0)
+    total_ingresado = float(ventas_ingresado_q.scalar() or 0) + float(pagos_total_q.scalar() or 0)
+
+    # =========================
+    # TOTALES POR MÉTODO DE PAGO
+    # =========================
+    ventas_por_metodo_q = (
+        db.session.query(
+            Venta.metodo_pago,
+            func.coalesce(func.sum(Venta.pago_a_cuenta), 0)
+        )
+        .filter(Venta.pago_a_cuenta.isnot(None))
+    )
+
+    pagos_por_metodo_q = (
+        db.session.query(
+            PagoCliente.metodo_pago,
+            func.coalesce(func.sum(PagoCliente.monto), 0)
+        )
+    )
+
+    if desde and hasta:
+        ventas_por_metodo_q = ventas_por_metodo_q.filter(Venta.fecha.between(desde, hasta))
+        pagos_por_metodo_q = pagos_por_metodo_q.filter(PagoCliente.fecha.between(desde, hasta))
+
+    ventas_por_metodo = ventas_por_metodo_q.group_by(Venta.metodo_pago).all()
+    pagos_por_metodo = pagos_por_metodo_q.group_by(PagoCliente.metodo_pago).all()
+
+    # =========================
+    # UNIFICAR RESULTADOS
+    # =========================
     totales_por_metodo = {}
+
     for metodo, total in ventas_por_metodo:
         if metodo:
-            totales_por_metodo[metodo] = totales_por_metodo.get(metodo, 0) + float(total)
+            totales_por_metodo[metodo] = totales_por_metodo.get(metodo, 0) + float(total or 0)
 
     for metodo, total in pagos_por_metodo:
         if metodo:
-            totales_por_metodo[metodo] = totales_por_metodo.get(metodo, 0) + float(total)
+            totales_por_metodo[metodo] = totales_por_metodo.get(metodo, 0) + float(total or 0)
 
-    return render_template("caja.html",
-                           total_ventas=total_ventas,
-                           total_ingresado=total_ingresado,
-                           totales_por_metodo=totales_por_metodo,
-                           desde=desde,
-                           hasta=hasta)
+    return render_template(
+        "caja.html",
+        total_ventas=total_ventas,
+        total_ingresado=total_ingresado,
+        totales_por_metodo=totales_por_metodo,
+        desde=desde,
+        hasta=hasta
+    )
+
 
 
 # ---------- LOGIN ----------
@@ -485,6 +527,9 @@ if __name__ == "__main__":
     from waitress import serve
     load_dotenv()
     serve(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+
+
 
 
 
