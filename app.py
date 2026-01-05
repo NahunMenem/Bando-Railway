@@ -139,16 +139,30 @@ def eliminar_cliente(id):
 
 
 # ---------- RUTAS VENTAS ----------
+# ---------- RUTAS VENTAS ----------
 @app.route("/ventas")
 @login_required
 def ventas():
     clientes = Cliente.query.all()
-    for cliente in clientes:
-        total_deuda = db.session.query(
-            func.coalesce(func.sum(Venta.total - Venta.pago_a_cuenta), 0)
-        ).filter(Venta.cliente_id == cliente.id).scalar()
 
-    return render_template("ventas.html", clientes=clientes, fecha_hoy=date.today().strftime("%Y-%m-%d"))
+    for cliente in clientes:
+        cliente.saldo_calculado = (
+            db.session.query(
+                func.coalesce(
+                    func.sum(Venta.total - func.coalesce(Venta.pago_a_cuenta, 0)),
+                    0
+                )
+            )
+            .filter(Venta.cliente_id == cliente.id)
+            .scalar()
+        )
+
+    return render_template(
+        "ventas.html",
+        clientes=clientes,
+        fecha_hoy=date.today().strftime("%Y-%m-%d")
+    )
+
 
 
 @app.route("/ventas/guardar", methods=["POST"])
@@ -471,6 +485,7 @@ if __name__ == "__main__":
     from waitress import serve
     load_dotenv()
     serve(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
 
 
